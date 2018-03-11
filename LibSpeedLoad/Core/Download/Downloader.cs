@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -17,6 +18,8 @@ namespace LibSpeedLoad.Core.Download
         private readonly HttpClient _client = new HttpClient();
         private readonly IntPtr _propsSizePtr = new IntPtr(5);
 
+        private readonly ConcurrentDictionary<string, byte[]> _dataMap = new ConcurrentDictionary<string, byte[]>();
+        
         /**
          * Download a section and extract the files
          */
@@ -45,6 +48,9 @@ namespace LibSpeedLoad.Core.Download
                         continue;
                     }
 
+                    _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
+                        //                    _dataMap.Add(fileInfo.FullPath, new byte[fileInfo.Length]);
+
                     if (fileInfo.CompressedLength != -1)
                     {
                         Console.WriteLine(
@@ -63,10 +69,11 @@ namespace LibSpeedLoad.Core.Download
 
                         var props = inputReader.ReadBytes(5);
                         inputReader.BaseStream.Seek(8, SeekOrigin.Current);
-                        var compressedInput = inputReader.ReadBytes(fileInfo.CompressedLength - 13);
+                        inputReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
+//                        var compressedInput = inputReader.ReadBytes(fileInfo.CompressedLength - 13);
                         var decompressedOutput = new byte[destLen.ToInt32()];
 
-                        LZMA.AutoUncompress(ref decompressedOutput, ref destLen, compressedInput, ref srcLen, props,
+                        LZMA.AutoUncompress(ref decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath], ref srcLen, props,
                             _propsSizePtr);
                         Console.WriteLine("Decompressed");
 
@@ -76,34 +83,20 @@ namespace LibSpeedLoad.Core.Download
                         }
                         
                         decompressedOutput = null;
-                        compressedInput = null;
 
                         props = null;
                     }
                     else
                     {
                         inputReader.BaseStream.Position = fileInfo.Offset;
-                        var read = new byte[fileInfo.Length];
-                        inputReader.Read(read, 0, read.Length);
+                        inputReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
 
                         Console.WriteLine($"[uncompressed] create {fileInfo.Path} / {fileInfo.FullPath}");
                         Directory.CreateDirectory(fileInfo.Path);
 
                         using (var fileStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                         {
-                            fileStream.Write(read, 0, read.Length);
-                        }
-                    }
-
-                    using (var inStream = File.OpenRead(fileInfo.FullPath))
-                    {
-                        using (var md5 = MD5.Create())
-                        {
-                            var hash = Convert.ToBase64String(md5.ComputeHash(inStream));
-                            
-                            DebugUtil.EnsureCondition(
-                                hash == fileInfo.Hash,
-                                () => $"Expected hash {fileInfo.Hash} for {fileInfo.FullPath}, got {hash}");
+                            fileStream.Write(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
                         }
                     }
                 }
