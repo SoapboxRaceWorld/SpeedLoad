@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
+using LibSpeedLoad.Core.Utils;
 
 namespace LibSpeedLoad.Core.Download
 {
@@ -13,13 +14,6 @@ namespace LibSpeedLoad.Core.Download
      */
     public class Downloader
     {
-        private static class LZMA
-        {
-            [DllImport("EasyLZMA", CharSet = CharSet.None, ExactSpelling = false)]
-            public static extern int LzmaUncompress(byte[] dest, ref IntPtr destLen, byte[] src, ref IntPtr srcLen,
-                byte[] outProps, IntPtr outPropsSize);
-        }
-
         private readonly HttpClient _client = new HttpClient();
         private readonly IntPtr _propsSizePtr = new IntPtr(5);
 
@@ -72,7 +66,7 @@ namespace LibSpeedLoad.Core.Download
                         var compressedInput = inputReader.ReadBytes(fileInfo.CompressedLength - 13);
                         var decompressedOutput = new byte[destLen.ToInt32()];
 
-                        LZMA.LzmaUncompress(decompressedOutput, ref destLen, compressedInput, ref srcLen, props,
+                        LZMA.AutoUncompress(ref decompressedOutput, ref destLen, compressedInput, ref srcLen, props,
                             _propsSizePtr);
                         Console.WriteLine("Decompressed");
 
@@ -80,7 +74,7 @@ namespace LibSpeedLoad.Core.Download
                         {
                             outStream.Write(decompressedOutput, 0, decompressedOutput.Length);
                         }
-
+                        
                         decompressedOutput = null;
                         compressedInput = null;
 
@@ -98,6 +92,18 @@ namespace LibSpeedLoad.Core.Download
                         using (var fileStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                         {
                             fileStream.Write(read, 0, read.Length);
+                        }
+                    }
+
+                    using (var inStream = File.OpenRead(fileInfo.FullPath))
+                    {
+                        using (var md5 = MD5.Create())
+                        {
+                            var hash = Convert.ToBase64String(md5.ComputeHash(inStream));
+                            
+                            DebugUtil.EnsureCondition(
+                                hash == fileInfo.Hash,
+                                () => $"Expected hash {fileInfo.Hash} for {fileInfo.FullPath}, got {hash}");
                         }
                     }
                 }

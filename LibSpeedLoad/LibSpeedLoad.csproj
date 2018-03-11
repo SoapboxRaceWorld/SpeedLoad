@@ -35,9 +35,6 @@
     <Reference Include="AsyncEnumerable, Version=2.1.1.0, Culture=neutral, PublicKeyToken=0426b068161bd1d1">
       <HintPath>..\packages\AsyncEnumerator.2.1.1\lib\net45\AsyncEnumerable.dll</HintPath>
     </Reference>
-    <Reference Include="SevenZip.SDK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\packages\SevenZip.SDK.1.0.0\lib\SevenZip.SDK.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <HintPath>..\packages\System.Collections.Immutable.1.1.36\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
@@ -53,18 +50,14 @@
   <ItemGroup>
     <Compile Include="Core\DownloadManager.cs" />
     <Compile Include="Core\Download\Downloader.cs" />
+    <Compile Include="Core\Download\HashManager.cs" />
     <Compile Include="Core\SpeedLoadException.cs" />
     <Compile Include="Core\Utils\DebugUtil.cs" />
+    <Compile Include="Core\Utils\LZMA.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Downloads\lzma-compressor-master\SevenZip.csproj">
-      <Project>{67a14617-b989-47d1-8a8a-a8aef1b01970}</Project>
-      <Name>SevenZip</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

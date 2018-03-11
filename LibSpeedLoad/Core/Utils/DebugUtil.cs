@@ -6,6 +6,15 @@ namespace LibSpeedLoad.Core.Utils
 {
     public static class DebugUtil
     {
+        public static bool IsLinux
+        {
+            get
+            {
+                var p = (int) Environment.OSVersion.Platform;
+                return p == 4 || p == 6 || p == 128;
+            }
+        }
+        
         public static void EnsureCondition(bool condition, Func<string> exceptionMessage,
             [CallerMemberName] string callerName = "")
         {
