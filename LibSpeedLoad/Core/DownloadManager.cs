@@ -255,7 +255,6 @@ namespace LibSpeedLoad.Core
                         .ParallelForEachAsync(async g =>
                         {
                             var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
-                            Console.WriteLine($"Download section: {sectionUrl} (count: {g.Count()})");
                             await _downloader.StartDownload(sectionUrl, g.ToList());
                         }, 50);
                 }

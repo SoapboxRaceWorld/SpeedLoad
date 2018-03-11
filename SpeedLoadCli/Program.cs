@@ -13,7 +13,7 @@ namespace SpeedLoadCli
             
             var downloader = new DownloadManager(new DownloadManager.DownloadOptions
             {
-                Download = DownloadManager.DownloadData.All,
+                Download = DownloadManager.DownloadData.GameBase | DownloadManager.DownloadData.Tracks | DownloadManager.DownloadData.Speech,
                 GameDirectory = args[0],
                 GameVersion = "1614b",
                 GameLanguage = "en"
