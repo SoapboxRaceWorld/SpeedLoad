@@ -19,7 +19,7 @@ namespace LibSpeedLoad.Core.Download
         private readonly IntPtr _propsSizePtr = new IntPtr(5);
 
         private readonly ConcurrentDictionary<string, byte[]> _dataMap = new ConcurrentDictionary<string, byte[]>();
-        
+
         /**
          * Download a section and extract the files
          */
@@ -28,12 +28,13 @@ namespace LibSpeedLoad.Core.Download
             return Task.Run(async () =>
             {
                 var response = await _client.GetAsync(sectionUrl);
-                
+
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    throw new SpeedLoadException($"Section retrieval failed with code {response.StatusCode.ToString()}");
+                    throw new SpeedLoadException(
+                        $"Section retrieval failed with code {response.StatusCode.ToString()}");
                 }
-                
+
                 var fileData = await response.Content.ReadAsByteArrayAsync();
                 var inputReader = new BinaryReader(new MemoryStream(fileData));
                 var tmpData = new byte[fileData.Length];
@@ -49,7 +50,7 @@ namespace LibSpeedLoad.Core.Download
                     }
 
                     _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
-                        //                    _dataMap.Add(fileInfo.FullPath, new byte[fileInfo.Length]);
+                    //                    _dataMap.Add(fileInfo.FullPath, new byte[fileInfo.Length]);
 
                     if (fileInfo.CompressedLength != -1)
                     {
@@ -73,7 +74,8 @@ namespace LibSpeedLoad.Core.Download
 //                        var compressedInput = inputReader.ReadBytes(fileInfo.CompressedLength - 13);
                         var decompressedOutput = new byte[destLen.ToInt32()];
 
-                        LZMA.AutoUncompress(ref decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath], ref srcLen, props,
+                        LZMA.AutoUncompress(ref decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath],
+                            ref srcLen, props,
                             _propsSizePtr);
                         Console.WriteLine("Decompressed");
 
@@ -81,9 +83,8 @@ namespace LibSpeedLoad.Core.Download
                         {
                             outStream.Write(decompressedOutput, 0, decompressedOutput.Length);
                         }
-                        
-                        decompressedOutput = null;
 
+                        decompressedOutput = null;
                         props = null;
                     }
                     else
@@ -99,6 +100,8 @@ namespace LibSpeedLoad.Core.Download
                             fileStream.Write(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
                         }
                     }
+                    
+                    _dataMap[fileInfo.FullPath] = null;
                 }
             });
         }
