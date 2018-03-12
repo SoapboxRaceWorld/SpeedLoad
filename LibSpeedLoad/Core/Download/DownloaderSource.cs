@@ -9,7 +9,7 @@ namespace LibSpeedLoad.Core.Download
      * A source is responsible for using a given URL
      * to download files.
      */
-    public abstract class DownloaderSource<TFi> where TFi : struct
+    public abstract class DownloaderSource
     {
         /**
          * Begin the download process.

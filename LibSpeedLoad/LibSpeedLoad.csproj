@@ -35,6 +35,9 @@
     <Reference Include="AsyncEnumerable, Version=2.1.1.0, Culture=neutral, PublicKeyToken=0426b068161bd1d1">
       <HintPath>..\packages\AsyncEnumerator.2.1.1\lib\net45\AsyncEnumerable.dll</HintPath>
     </Reference>
+    <Reference Include="Easy.Common, Version=2.8.8.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\Easy.Common.2.8.8\lib\net45\Easy.Common.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <HintPath>..\packages\System.Collections.Immutable.1.1.36\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
@@ -54,8 +57,14 @@
     <Compile Include="Core\Download\Events\DownloadCompleted.cs" />
     <Compile Include="Core\Download\Events\DownloadFailed.cs" />
     <Compile Include="Core\Download\HashManager.cs" />
+    <Compile Include="Core\Download\Sources\Downloader.cs" />
     <Compile Include="Core\Download\Sources\StaticCDNSource.cs" />
-    <Compile Include="Core\Download\Sources\StaticCDN\Structures.cs" />
+    <Compile Include="Core\Download\Sources\StaticCDN\CDNDownloader.cs" />
+    <Compile Include="Core\Download\Sources\StaticCDN\CDNStructures.cs" />
+    <Compile Include="Core\Exceptions\CorruptDataException.cs" />
+    <Compile Include="Core\Exceptions\IntegrityException.cs" />
+    <Compile Include="Core\Exceptions\InvalidMetadataException.cs" />
+    <Compile Include="Core\Exceptions\DownloaderWebException.cs" />
     <Compile Include="Core\SpeedLoadException.cs" />
     <Compile Include="Core\Utils\DebugUtil.cs" />
     <Compile Include="Core\Utils\LZMA.cs" />
