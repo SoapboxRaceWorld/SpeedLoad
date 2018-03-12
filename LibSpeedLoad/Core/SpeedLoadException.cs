@@ -7,7 +7,7 @@ namespace LibSpeedLoad.Core
         public SpeedLoadException()
         {
         }
-
+        
         public SpeedLoadException(string message) : base(message)
         {
         }

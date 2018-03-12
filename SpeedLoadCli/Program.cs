@@ -18,10 +18,18 @@ namespace SpeedLoadCli
                 GameVersion = "1614b",
                 GameLanguage = "en"
             });
+
+            downloader.DownloadCompleted.Add(() =>
+            {
+                Console.WriteLine("Download completed!");
+            });
+            
+            downloader.DownloadFailed.Add(e =>
+            {
+                Console.WriteLine($"Download failed: {e.Message}");
+            });
             
             await downloader.Download();
-            
-            Console.WriteLine("Completed!");
         }
     }
 }

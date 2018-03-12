@@ -50,7 +50,12 @@
   <ItemGroup>
     <Compile Include="Core\DownloadManager.cs" />
     <Compile Include="Core\Download\Downloader.cs" />
+    <Compile Include="Core\Download\DownloaderSource.cs" />
+    <Compile Include="Core\Download\Events\DownloadCompleted.cs" />
+    <Compile Include="Core\Download\Events\DownloadFailed.cs" />
     <Compile Include="Core\Download\HashManager.cs" />
+    <Compile Include="Core\Download\Sources\StaticCDNSource.cs" />
+    <Compile Include="Core\Download\Sources\StaticCDN\Structures.cs" />
     <Compile Include="Core\SpeedLoadException.cs" />
     <Compile Include="Core\Utils\DebugUtil.cs" />
     <Compile Include="Core\Utils\LZMA.cs" />

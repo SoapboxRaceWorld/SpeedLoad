@@ -9,6 +9,7 @@ using LibSpeedLoad.Core.Download;
 using LibSpeedLoad.Core.Utils;
 using System.Collections.Async;
 using System.Net;
+using LibSpeedLoad.Core.Download.Events;
 
 namespace LibSpeedLoad.Core
 {
@@ -23,6 +24,9 @@ namespace LibSpeedLoad.Core
         private const string SectionUrlFormat = "{0}/section{1}.dat";
 
         private readonly DownloadOptions _downloadOptions;
+
+        public List<DownloadCompleted> DownloadCompleted { get; } = new List<DownloadCompleted>();
+        public List<DownloadFailed> DownloadFailed { get; } = new List<DownloadFailed>();
 
         private struct Header
         {
@@ -47,10 +51,10 @@ namespace LibSpeedLoad.Core
 
             public uint Revision { get; set; }
 
-            // section{section}.dat; this kinda makes sense in some way, it's just chunking the download... hmm...
+            // section{section}.dat
             public uint Section { get; set; }
 
-            // offset in sectionX.dat file; NOTE: this MUST ONLY be used on the decompressed file 
+            // offset in sectionX.dat file; NOTE: this MUST ONLY be used on a file once it's decompressed
             public uint Offset { get; set; }
             public uint Length { get; set; }
             public int CompressedLength { get; set; }
@@ -81,9 +85,7 @@ namespace LibSpeedLoad.Core
         }
 
         /**
-         * Constructs a downloader.
-         * 
-         * The version parameter should be a build ID string; for example, "1614b" for the last client version.
+         * Constructs a download manager.
          */
         public DownloadManager(DownloadOptions options)
         {
@@ -94,7 +96,7 @@ namespace LibSpeedLoad.Core
             _tracksHighIndexUrl = string.Format(IndexUrlFormat, _downloadOptions.GameVersion, "TracksHigh/");
             _speechIndexUrl =
                 string.Format(IndexUrlFormat, _downloadOptions.GameVersion,
-                    $"{_downloadOptions.GameLanguage}/"); // gotta add some sort of language setting
+                    $"{_downloadOptions.GameLanguage}/");
         }
 
         public Task Download()
@@ -119,7 +121,7 @@ namespace LibSpeedLoad.Core
                     await LoadIndex(_gameIndexUrl);
                     Console.WriteLine("---------------------");
                 }
-                
+
                 if (_downloadOptions.Download.HasFlag(DownloadData.Tracks))
                 {
                     Console.WriteLine("---------------------");
@@ -127,7 +129,7 @@ namespace LibSpeedLoad.Core
                     await LoadIndex(_tracksIndexUrl);
                     Console.WriteLine("---------------------");
                 }
-                
+
                 if (_downloadOptions.Download.HasFlag(DownloadData.TracksHigh))
                 {
                     Console.WriteLine("---------------------");
@@ -135,7 +137,7 @@ namespace LibSpeedLoad.Core
                     await LoadIndex(_tracksHighIndexUrl);
                     Console.WriteLine("---------------------");
                 }
-                
+
                 if (_downloadOptions.Download.HasFlag(DownloadData.Speech))
                 {
                     Console.WriteLine("---------------------");
@@ -244,19 +246,48 @@ namespace LibSpeedLoad.Core
                         });
                     }
 
-                    await database.Files
-                        .Select(f =>
-                        {
-                            f.Path = f.Path.Replace("CDShift", _downloadOptions.GameDirectory);
+                    try
+                    {
+                        await database.Files
+                            .Select(f =>
+                            {
+                                f.Path = f.Path.Replace("CDShift", _downloadOptions.GameDirectory);
 
-                            return f;
-                        })
-                        .GroupBy(f => f.Section)
-                        .ParallelForEachAsync(async g =>
+                                return f;
+                            })
+                            .GroupBy(f => f.Section)
+                            .ParallelForEachAsync(async g =>
+                            {
+                                var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
+
+                                await _downloader.StartDownload(sectionUrl, g.ToList());
+                            }, 50);
+
+                        foreach (var handler in DownloadCompleted)
                         {
-                            var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
-                            await _downloader.StartDownload(sectionUrl, g.ToList());
-                        }, 50);
+                            handler.DynamicInvoke();
+                        }
+                    }
+                    catch (AggregateException e)
+                    {
+                            if (e.InnerExceptions.Any())
+                            {
+                                foreach (var handler in DownloadFailed)
+                                {
+                                    foreach (var exception in e.InnerExceptions)
+                                    {
+                                        handler.DynamicInvoke(exception);
+                                    }
+                                }
+                            }
+                    }
+                    catch (Exception e)
+                    {
+                        foreach (var handler in DownloadFailed)
+                        {
+                            handler.DynamicInvoke(e);
+                        }
+                    }
                 }
             });
         }
