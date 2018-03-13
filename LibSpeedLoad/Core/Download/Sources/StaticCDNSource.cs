@@ -3,16 +3,13 @@ using System.Collections.Async;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml;
-using LibSpeedLoad.Core.Download.Events;
 using LibSpeedLoad.Core.Download.Sources.StaticCDN;
 using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
-using FileInfo = LibSpeedLoad.Core.Download.Sources.StaticCDN.FileInfo;
 
 namespace LibSpeedLoad.Core.Download.Sources
 {
@@ -35,7 +32,7 @@ namespace LibSpeedLoad.Core.Download.Sources
         {
             public Header Header { get; set; }
 
-            public List<FileInfo> Files { get; } = new List<FileInfo>();
+            public List<StaticCDN.FileInfo> Files { get; } = new List<StaticCDN.FileInfo>();
         }
 
         // {0} = build
@@ -51,13 +48,13 @@ namespace LibSpeedLoad.Core.Download.Sources
         private readonly string _tracksHighIndexUrl;
         private readonly string _speechIndexUrl;
 
-        private readonly DownloadOptions _downloadOptions;
+        private readonly CDNDownloadOptions _downloadOptions;
         private readonly CDNDownloader _downloader = new CDNDownloader();
 
         /**
          * Constructs the source.
          */
-        public StaticCdnSource(DownloadOptions options)
+        public StaticCdnSource(CDNDownloadOptions options)
         {
             _downloadOptions = options ?? throw new ArgumentNullException(nameof(options));
 
@@ -220,7 +217,7 @@ namespace LibSpeedLoad.Core.Download.Sources
                     fileElement.SelectSingleNode("length") != null,
                     () => "Invalid file info: No length key!");
 
-                database.Files.Add(new FileInfo
+                database.Files.Add(new StaticCDN.FileInfo
                 {
                     Path = fileElement.SelectSingleNode("path")?.InnerText,
                     File = fileElement.SelectSingleNode("file")?.InnerText,

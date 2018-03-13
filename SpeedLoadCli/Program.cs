@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using LibSpeedLoad.Core;
-using LibSpeedLoad.Core.Download;
 using LibSpeedLoad.Core.Download.Sources;
 using LibSpeedLoad.Core.Download.Sources.StaticCDN;
 using LibSpeedLoad.Core.Utils;
+using SpeedLoadCli.CustomSources;
+using SpeedLoadCli.CustomSources.PatchCDN;
 
 namespace SpeedLoadCli
 {
@@ -21,18 +21,28 @@ namespace SpeedLoadCli
 
             if (!File.Exists($"{args[0]}/nfsw.exe"))
             {
-                downloader.Sources.Add(new StaticCdnSource(new DownloadOptions
+                var staticCdnSource = new StaticCdnSource(new CDNDownloadOptions
                 {
-                    Download = DownloadData.GameBase | DownloadData.Tracks |
-                               DownloadData.Speech,
+                    Download = DownloadData.Speech,
                     GameDirectory = args[0],
                     GameVersion = "1614b",
                     GameLanguage = "en"
-                }));
+                });
+                
+                downloader.Sources.Add(staticCdnSource);
             }
+            
+            downloader.Sources.Add(new PatchCDNSource(new PatchDownloadOptions
+            {
+                GameDirectory = args[0]
+            }));
 
             downloader.DownloadCompleted.Add(() => { Console.WriteLine("Download completed!"); });
-            downloader.DownloadFailed.Add(e => { Console.WriteLine($"Download failed: {e.Message}"); });
+            downloader.DownloadFailed.Add(e =>
+            {
+                Console.WriteLine($"Download failed: {e.Message} (in {e.TargetSite.DeclaringType?.FullName}.{e.TargetSite?.Name})");
+                Console.WriteLine(e.StackTrace);
+            });
 
             await downloader.Download();
         }

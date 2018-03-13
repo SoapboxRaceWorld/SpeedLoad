@@ -31,7 +31,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         Speech = 16,
     }
 
-    public class DownloadOptions
+    public class CDNDownloadOptions
     {
         public DownloadData Download { get; set; }
 

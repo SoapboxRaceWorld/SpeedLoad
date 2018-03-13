@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -13,6 +14,28 @@ namespace LibSpeedLoad.Core.Utils
                 var p = (int) Environment.OSVersion.Platform;
                 return p == 4 || p == 6 || p == 128;
             }
+        }
+        
+        public static string Sha256(string randomString)
+        {
+            var crypt = new System.Security.Cryptography.SHA256Managed();
+            var hash = new System.Text.StringBuilder();
+            var crypto = crypt.ComputeHash(Encoding.UTF8.GetBytes(randomString));
+            foreach (var theByte in crypto)
+            {
+                hash.Append(theByte.ToString("x2"));
+            }
+            return hash.ToString();
+        }
+        
+        public static string Sha256ToString(IEnumerable<byte> shaBytes)
+        {
+            var hash = new StringBuilder();
+            foreach (var theByte in shaBytes)
+            {
+                hash.Append(theByte.ToString("x2"));
+            }
+            return hash.ToString();
         }
         
         public static void EnsureCondition(bool condition, Func<string> exceptionMessage,

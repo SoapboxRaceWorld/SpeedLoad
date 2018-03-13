@@ -36,10 +36,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         continue;
                     }
 
-                    lock (_readLock)
-                    {
-                        _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
-                    }
+                    _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
 
                     reader.BaseStream.Position = fileInfo.Offset;
 
@@ -55,10 +52,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         await HandleUncompressedFile(fileInfo, reader, url);
                     }
 
-                    lock (_readLock)
-                    {
-                        _dataMap[fileInfo.FullPath] = null;
-                    }
+                    _dataMap[fileInfo.FullPath] = null;
                 }
             });
         }
@@ -85,7 +79,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         private async Task HandleUncompressedFile(FileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
         {
             Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling uncompressed file");
-            
+
             // A multipart file can span multiple sections,
             // so we have to keep track of how much has been read. 
             // This code is kind of irritating and semi-confusing, but it works. 
@@ -123,13 +117,10 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                     bytesRead += bytesToRead;
                 }
 
-                lock (_readLock)
+                _dataMap[fileInfo.FullPath] = bytes.ToArray();
+                using (var outStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                 {
-                    _dataMap[fileInfo.FullPath] = bytes.ToArray();
-                    using (var outStream = new FileStream(fileInfo.FullPath, FileMode.Create))
-                    {
-                        outStream.Write(_dataMap[fileInfo.FullPath], 0, bytes.Count);
-                    }
+                    outStream.Write(_dataMap[fileInfo.FullPath], 0, bytes.Count);
                 }
 
                 bytes.Clear();
@@ -137,15 +128,12 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
             else
             {
                 // Thankfully there are some files that are small and don't require reading multiple sections at a time.
-                lock (_readLock)
-                {
-                    binaryReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
+                binaryReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
 
-                    using (var fileStream = new FileStream(fileInfo.FullPath, FileMode.Create))
-                    {
-                        fileStream.Write(_dataMap[fileInfo.FullPath], 0,
-                            _dataMap[fileInfo.FullPath].Length);
-                    }
+                using (var fileStream = new FileStream(fileInfo.FullPath, FileMode.Create))
+                {
+                    fileStream.Write(_dataMap[fileInfo.FullPath], 0,
+                        _dataMap[fileInfo.FullPath].Length);
                 }
             }
         }
@@ -217,26 +205,20 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
             else
             {
                 // Thankfully there are some files that are small and don't require reading multiple sections at a time.
-                
+
                 var destLen = new IntPtr(fileInfo.Length);
                 var srcLen = new IntPtr(fileInfo.CompressedLength - 13);
 
                 var props = binaryReader.ReadBytes(5);
                 binaryReader.BaseStream.Seek(8, SeekOrigin.Current);
 
-                lock (_readLock)
-                {
-                    binaryReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
-                }
+                binaryReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
 
                 var decompressedOutput = new byte[destLen.ToInt32()];
 
-                lock (_readLock)
-                {
-                    LZMA.LzmaUncompress(decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath],
-                        ref srcLen, props,
-                        _propsSizePtr);
-                }
+                LZMA.LzmaUncompress(decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath],
+                    ref srcLen, props,
+                    _propsSizePtr);
 
                 using (var outStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                 {
