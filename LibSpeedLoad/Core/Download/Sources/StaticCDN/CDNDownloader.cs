@@ -200,7 +200,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
 
                 var decompressedOutput = new byte[destLen.ToInt32()];
 
-                LZMA.AutoUncompress(ref decompressedOutput, ref destLen, bytes.ToArray(),
+                LZMA.LzmaUncompress(decompressedOutput, ref destLen, bytes.ToArray(),
                     ref srcLen, props,
                     _propsSizePtr);
 
@@ -233,7 +233,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
 
                 lock (_readLock)
                 {
-                    LZMA.AutoUncompress(ref decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath],
+                    LZMA.LzmaUncompress(decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath],
                         ref srcLen, props,
                         _propsSizePtr);
                 }
