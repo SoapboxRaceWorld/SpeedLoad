@@ -150,7 +150,7 @@ namespace LibSpeedLoad.Core.Download.Sources
                             var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
 
                             await _downloader.StartDownload(sectionUrl, g.ToList());
-                        }, 50);
+                        });
                 }
             });
         }

@@ -23,7 +23,8 @@ namespace SpeedLoadCli
             {
                 var staticCdnSource = new StaticCdnSource(new CDNDownloadOptions
                 {
-                    Download = DownloadData.Speech,
+                    Download = DownloadData.GameBase | DownloadData.Tracks |
+                               DownloadData.Speech,
                     GameDirectory = args[0],
                     GameVersion = "1614b",
                     GameLanguage = "en"
