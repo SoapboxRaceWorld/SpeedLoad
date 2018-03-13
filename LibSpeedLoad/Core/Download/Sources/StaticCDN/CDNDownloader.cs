@@ -28,18 +28,17 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
             {
                 var reader = await FetchSection(url);
 
-                Parallel.ForEach(files, async fileInfo =>
+                foreach (var fileInfo in files)
                 {
                     if (File.Exists(fileInfo.FullPath))
                     {
                         Console.WriteLine($"Skipping {fileInfo.FullPath} because it's already downloaded");
-                        return;
+                        continue;
                     }
 
                     lock (_readLock)
                     {
-                        DebugUtil.EnsureCondition(_dataMap.TryAdd(fileInfo.FullPath, new byte[fileInfo.Length]),
-                            () => $"Failed to add data for {fileInfo.FullPath}");
+                        _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
                     }
 
                     reader.BaseStream.Position = fileInfo.Offset;
@@ -60,7 +59,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                     {
                         _dataMap[fileInfo.FullPath] = null;
                     }
-                });
+                }
             });
         }
 
