@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Easy.Common.Extensions;
 using LibSpeedLoad.Core.Download.Sources;
 using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
@@ -15,6 +16,7 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
     public class PatchCDNDownloader : Downloader<FileInfo>
     {
         private readonly HttpClient _client = new HttpClient();
+        private readonly Dictionary<string, string> _hashDictionary = new Dictionary<string, string>();
 
         public override Task StartDownload(string url, IEnumerable<FileInfo> files)
         {
@@ -24,41 +26,45 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
 
                 foreach (var file in fileInfos)
                 {
-                    if (File.Exists(file.Path))
+                    if (File.Exists(file.FullPath))
                     {
-                        Console.WriteLine($"Skipping {file.Name}");
                         continue;
                     }
 
-                    Console.WriteLine($"download {file.Name} to {file.Path}");
-
-                    var fileUrl = $"{url}/{file.Name}";
-                    var response = await _client.GetAsync(fileUrl);
-
+                    var webPath = $"{url}/{(file.Path == "" ? "" : file.Path)}{file.Name}";
+                    var response = await _client.GetAsync(webPath);
+                    
                     if (response.StatusCode != HttpStatusCode.OK)
                     {
                         throw new DownloaderWebException(
-                            $"Failed to retrieve file {url}: {response.StatusCode.ToString()}");
+                            $"Failed to retrieve file {webPath}: {response.StatusCode.ToString()}");
+                    }
+
+                    if (!File.Exists(file.FullPath))
+                    {
+                        Directory.CreateDirectory(file.FullPath);
                     }
 
                     var fileData = await response.Content.ReadAsByteArrayAsync();
 
-                    using (var outStream = new FileStream(file.Path, FileMode.Create))
+                    using (var outStream = new FileStream(Path.Combine(file.FullPath, file.Name), FileMode.Create))
                     {
                         outStream.Write(fileData, 0, fileData.Length);
                     }
+
+                    _hashDictionary[Path.Combine(file.FullPath, file.Name)] = file.Hash256;
                 }
 
-                Parallel.ForEach(fileInfos, fileInfo =>
+                Parallel.ForEach(_hashDictionary, hp =>
                 {
                     using (var sha256 = SHA256.Create())
-                    using (var inStream = File.OpenRead(fileInfo.Path))
+                    using (var inStream = File.OpenRead(hp.Key))
                     {
                         var calcHash = DebugUtil.Sha256ToString(sha256.ComputeHash(inStream));
-                        
+
                         DebugUtil.EnsureCondition(
-                            calcHash == fileInfo.Hash,
-                            () => $"Hash for {fileInfo.Name} is invalid! Expected {fileInfo.Hash}, got {calcHash}");
+                            calcHash == hp.Value,
+                            () => $"Hash for {hp.Key} is invalid! Expected {hp.Value}, got {calcHash}");
                     }
                 });
             });

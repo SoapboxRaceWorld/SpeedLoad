@@ -16,7 +16,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
     public class CDNDownloader : Downloader<FileInfo>
     {
         private readonly HttpClient _client = new HttpClient();
-        private readonly object _readLock = new object();
         private readonly ConcurrentDictionary<string, byte[]> _dataMap = new ConcurrentDictionary<string, byte[]>();
 
         // Used for LZMA decompression
@@ -32,7 +31,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                 {
                     if (File.Exists(fileInfo.FullPath))
                     {
-                        Console.WriteLine($"Skipping {fileInfo.FullPath} because it's already downloaded");
                         continue;
                     }
 
@@ -78,15 +76,15 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         // Extract a file that isn't LZMA-compressed.
         private async Task HandleUncompressedFile(FileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
         {
-            Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling uncompressed file");
+//            Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling uncompressed file");
 
             // A multipart file can span multiple sections,
             // so we have to keep track of how much has been read. 
             // This code is kind of irritating and semi-confusing, but it works. 
             if (binaryReader.BaseStream.Position + fileInfo.Length > binaryReader.BaseStream.Length)
             {
-                Console.WriteLine(
-                    $"    Multi-part file detected @ 0x{binaryReader.BaseStream.Position:X8} (total {fileInfo.Length}, reader has {binaryReader.BaseStream.Length - binaryReader.BaseStream.Position})");
+//                Console.WriteLine(
+//                    $"    Multi-part file detected @ 0x{binaryReader.BaseStream.Position:X8} (total {fileInfo.Length}, reader has {binaryReader.BaseStream.Length - binaryReader.BaseStream.Position})");
 
                 var bytesRead = 0;
                 var maxBytesRead = fileInfo.Length;
@@ -141,15 +139,15 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         // Extract a LZMA-compressed file.
         private async Task HandleCompressedFile(FileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
         {
-            Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling compressed file");
+//            Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling compressed file");
 
             // A multipart file can span multiple sections,
             // so we have to keep track of how much has been read. 
             // This code is kind of irritating and semi-confusing, but it works. 
             if (binaryReader.BaseStream.Position + fileInfo.CompressedLength > binaryReader.BaseStream.Length)
             {
-                Console.WriteLine(
-                    $"    Multi-part file detected @ 0x{binaryReader.BaseStream.Position:X8} (total {fileInfo.CompressedLength}, reader has {binaryReader.BaseStream.Length - binaryReader.BaseStream.Position})");
+//                Console.WriteLine(
+//                    $"    Multi-part file detected @ 0x{binaryReader.BaseStream.Position:X8} (total {fileInfo.CompressedLength}, reader has {binaryReader.BaseStream.Length - binaryReader.BaseStream.Position})");
 
                 var bytesRead = 0;
                 var maxBytesRead = fileInfo.CompressedLength - 13; // header is 13 bytes

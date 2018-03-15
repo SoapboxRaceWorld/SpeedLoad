@@ -33,10 +33,19 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
         public string Name { get; set; }
         
         [JsonProperty("hash256")]
+        public string Hash256 { get; set; }
+        
+        [JsonProperty("hash")]
         public string Hash { get; set; }
         
-        [JsonIgnore]
+        [JsonProperty("path")]
         public string Path { get; set; }
+        
+        [JsonIgnore]
+        public string FullPath { get; set; }
+        
+        [JsonIgnore]
+        public string WebPath { get; set; }
     }
     
     public class PatchDownloadOptions

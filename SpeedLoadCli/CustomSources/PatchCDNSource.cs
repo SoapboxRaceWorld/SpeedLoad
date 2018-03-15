@@ -21,7 +21,7 @@ namespace SpeedLoadCli.CustomSources
 
         // {0} = patchId
         private const string PatchRootFormat = "https://launcher.soapboxrace.world/patch/{0}";
-        private const string PatchManifestFormat = "https://launcher.soapboxrace.world/patch/{0}/manifest.php";
+        private const string PatchManifestFormat = "https://launcher.soapboxrace.world/patch/{0}/manifest.json";
 
         private readonly HttpClient _client = new HttpClient();
         private readonly PatchCDNDownloader _downloader = new PatchCDNDownloader();
@@ -43,8 +43,7 @@ namespace SpeedLoadCli.CustomSources
 
                 if (indexResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    throw new DownloaderWebException(
-                        $"Index retrieval failed with code {indexResponse.StatusCode.ToString()}");
+                    return;
                 }
 
                 var data = await indexResponse.Content.ReadAsStringAsync();
@@ -58,7 +57,7 @@ namespace SpeedLoadCli.CustomSources
 
                 await _downloader.StartDownload(rootUrl, fileList.Files.Select(f =>
                 {
-                    f.Path = Path.Combine(_downloadOptions.GameDirectory, f.Name);
+                    f.FullPath = Path.Combine(_downloadOptions.GameDirectory, f.Path);
 
                     return f;
                 }));
