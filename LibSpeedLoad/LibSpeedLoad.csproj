@@ -59,7 +59,6 @@
     <Compile Include="Core\Download\Sources\Downloader.cs" />
     <Compile Include="Core\Download\Sources\StaticCDNSource.cs" />
     <Compile Include="Core\Download\Sources\StaticCDN\CDNDownloader.cs" />
-    <Compile Include="Core\Download\Sources\StaticCDN\CDNProgressUpdated.cs" />
     <Compile Include="Core\Download\Sources\StaticCDN\CDNStructures.cs" />
     <Compile Include="Core\Exceptions\CorruptDataException.cs" />
     <Compile Include="Core\Exceptions\IntegrityException.cs" />

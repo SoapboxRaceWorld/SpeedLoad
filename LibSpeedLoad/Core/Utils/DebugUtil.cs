@@ -15,7 +15,7 @@ namespace LibSpeedLoad.Core.Utils
                 return p == 4 || p == 6 || p == 128;
             }
         }
-        
+
         public static string Sha256(string randomString)
         {
             var crypt = new System.Security.Cryptography.SHA256Managed();
@@ -25,9 +25,10 @@ namespace LibSpeedLoad.Core.Utils
             {
                 hash.Append(theByte.ToString("x2"));
             }
+
             return hash.ToString();
         }
-        
+
         public static string Sha256ToString(IEnumerable<byte> shaBytes)
         {
             var hash = new StringBuilder();
@@ -35,9 +36,10 @@ namespace LibSpeedLoad.Core.Utils
             {
                 hash.Append(theByte.ToString("x2"));
             }
+
             return hash.ToString();
         }
-        
+
         public static void EnsureCondition(bool condition, Func<string> exceptionMessage,
             [CallerMemberName] string callerName = "")
         {
@@ -50,9 +52,9 @@ namespace LibSpeedLoad.Core.Utils
         public static void EnsureCondition(Predicate<object> condition, Func<string> exceptionMessage,
             [CallerMemberName] string callerName = "")
         {
-            EnsureCondition(condition.Invoke(new object()), exceptionMessage);
+            EnsureCondition(condition.Invoke(new object()), exceptionMessage, callerName);
         }
-        
+
         public static string HexDump(byte[] bytes, int bytesPerLine = 16, int length = -1)
         {
             if (bytes == null) return "<null>";

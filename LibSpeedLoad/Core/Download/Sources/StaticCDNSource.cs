@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security.Policy;
 using System.Threading.Tasks;
 using System.Xml;
+
 using LibSpeedLoad.Core.Download.Sources.StaticCDN;
 using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
@@ -88,56 +88,11 @@ namespace LibSpeedLoad.Core.Download.Sources
                 if (_downloadOptions.Download.HasFlag(DownloadData.Speech))
                     downloads.Add(_speechIndexUrl);
 
-//                Parallel.ForEach(downloads, async url =>
                 foreach (var url in downloads)
                 {
                     Console.WriteLine($"Retrieving {url}");
                     await LoadIndex(url);
                 }
-//                });
-
-//                Console.WriteLine($"Game Version: {_downloadOptions.GameVersion}");
-//                Console.WriteLine($"Download flags: {_downloadOptions.Download}");
-//
-//                if (_downloadOptions.Download == DownloadData.All)
-//                {
-//                    Console.WriteLine("Downloading all data");
-//
-//                    _downloadOptions.Download = DownloadData.GameBase | DownloadData.Tracks | DownloadData.Speech |
-//                                                DownloadData.TracksHigh;
-//                }
-//
-//                if (_downloadOptions.Download.HasFlag(DownloadData.GameBase))
-//                {
-//                    Console.WriteLine("---------------------");
-//                    Console.WriteLine("Downloading game base");
-//                    await LoadIndex(_gameIndexUrl);
-//                    Console.WriteLine("---------------------");
-//                }
-//                
-//                if (_downloadOptions.Download.HasFlag(DownloadData.Tracks))
-//                {
-//                    Console.WriteLine("---------------------");
-//                    Console.WriteLine("Downloading tracks");
-//                    await LoadIndex(_tracksIndexUrl);
-//                    Console.WriteLine("---------------------");
-//                }
-//                
-//                if (_downloadOptions.Download.HasFlag(DownloadData.TracksHigh))
-//                {
-//                    Console.WriteLine("---------------------");
-//                    Console.WriteLine("Downloading high quality tracks");
-//                    await LoadIndex(_tracksHighIndexUrl);
-//                    Console.WriteLine("---------------------");
-//                }
-//                
-//                if (_downloadOptions.Download.HasFlag(DownloadData.Speech))
-//                {
-//                    Console.WriteLine("---------------------");
-//                    Console.WriteLine("Downloading speech");
-//                    await LoadIndex(_speechIndexUrl);
-//                    Console.WriteLine("---------------------");
-//                }
             });
         }
 

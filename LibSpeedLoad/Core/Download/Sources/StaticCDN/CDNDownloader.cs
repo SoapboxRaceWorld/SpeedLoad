@@ -8,12 +8,14 @@ using System.Threading.Tasks;
 using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
 
+using SFileInfo = LibSpeedLoad.Core.Download.Sources.StaticCDN.FileInfo;
+
 namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
 {
     /**
      * Downloads files from the BBX CDN.
      */
-    public class CDNDownloader : Downloader<FileInfo>
+    public class CDNDownloader : Downloader<SFileInfo>
     {
         private readonly HttpClient _client = new HttpClient();
         private readonly ConcurrentDictionary<string, byte[]> _dataMap = new ConcurrentDictionary<string, byte[]>();
@@ -21,7 +23,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         // Used for LZMA decompression
         private readonly IntPtr _propsSizePtr = new IntPtr(5);
 
-        public override Task StartDownload(string url, IEnumerable<FileInfo> files)
+        public override Task StartDownload(string url, IEnumerable<SFileInfo> files)
         {
             return Task.Run(async () =>
             {
@@ -74,7 +76,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         }
 
         // Extract a file that isn't LZMA-compressed.
-        private async Task HandleUncompressedFile(FileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
+        private async Task HandleUncompressedFile(SFileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
         {
 //            Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling uncompressed file");
 
@@ -137,7 +139,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         }
 
         // Extract a LZMA-compressed file.
-        private async Task HandleCompressedFile(FileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
+        private async Task HandleCompressedFile(SFileInfo fileInfo, BinaryReader binaryReader, string sectionUrl)
         {
 //            Console.WriteLine($"[FILE-{fileInfo.Section} {fileInfo.FullPath}]: handling compressed file");
 
