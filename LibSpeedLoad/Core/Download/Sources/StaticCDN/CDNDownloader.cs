@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections.Async;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
-
 using SFileInfo = LibSpeedLoad.Core.Download.Sources.StaticCDN.FileInfo;
 
 namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
@@ -23,6 +24,36 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         // Used for LZMA decompression
         private readonly IntPtr _propsSizePtr = new IntPtr(5);
 
+        private StaticCdnSource.Header _header;
+        private ulong _bytesRead;
+
+        /// <summary>
+        /// Initialize the downloader.
+        /// </summary>
+        /// <param name="header">The database header.</param>
+        public CDNDownloader(StaticCdnSource.Header header)
+        {
+            _header = header;
+        }
+
+        /// <summary>
+        /// Reset the downloader.
+        /// </summary>
+        public void Reset()
+        {
+            _bytesRead = 0;
+            _dataMap.Clear();
+        }
+
+        /// <summary>
+        /// Set the database header.
+        /// </summary>
+        /// <param name="header"></param>
+        public void SetHeader(StaticCdnSource.Header header)
+        {
+            _header = header;
+        }
+
         public override Task StartDownload(string url, IEnumerable<SFileInfo> files)
         {
             return Task.Run(async () =>
@@ -33,6 +64,15 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                 {
                     if (File.Exists(fileInfo.FullPath))
                     {
+                        _bytesRead += fileInfo.Length;
+
+                        // Trigger the listeners even if the file already exists
+                        foreach (var listener in ProgressUpdated)
+                        {
+                            listener.Invoke(_header.Length, _bytesRead, _header.CompressedLength,
+                                fileInfo.OriginalFullPath);
+                        }
+
                         continue;
                     }
 
@@ -52,13 +92,50 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         await HandleUncompressedFile(fileInfo, reader, url);
                     }
 
+                    _bytesRead += fileInfo.Length;
+
+                    foreach (var listener in ProgressUpdated)
+                    {
+                        listener.Invoke(_header.Length, _bytesRead, _header.CompressedLength,
+                            fileInfo.OriginalFullPath);
+                    }
+
                     _dataMap[fileInfo.FullPath] = null;
                 }
+
+//                await fileList.ParallelForEachAsync(async fileInfo =>
+//                {
+//                    if (File.Exists(fileInfo.FullPath))
+//                    {
+//                        return;
+//                    }
+//
+//                    _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
+//
+//                    reader.BaseStream.Position = fileInfo.Offset;
+//
+//                    Directory.CreateDirectory(fileInfo.Path);
+//
+//                    // Is it compressed?
+//                    if (fileInfo.CompressedLength != -1)
+//                    {
+//                        await HandleCompressedFile(fileInfo, reader, url);
+//                    }
+//                    else
+//                    {
+//                        await HandleUncompressedFile(fileInfo, reader, url);
+//                    }
+//
+//                    _dataMap[fileInfo.FullPath] = null;
+//                    reader.BaseStream.Position = 0;
+//                }, 30);
             });
         }
 
         private async Task<BinaryReader> FetchSection(string url)
         {
+//            Console.WriteLine($"fetch section: {url}");
+
             var response = await _client.GetAsync(url);
 
             if (response.StatusCode != HttpStatusCode.OK)
@@ -88,7 +165,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
 //                Console.WriteLine(
 //                    $"    Multi-part file detected @ 0x{binaryReader.BaseStream.Position:X8} (total {fileInfo.Length}, reader has {binaryReader.BaseStream.Length - binaryReader.BaseStream.Position})");
 
-                var bytesRead = 0;
+                uint bytesRead = 0;
                 var maxBytesRead = fileInfo.Length;
                 var curSection = fileInfo.Section;
 
@@ -98,7 +175,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                 var readFromMaster = (int) (binaryReader.BaseStream.Length - binaryReader.BaseStream.Position);
 
                 bytes.AddRange(binaryReader.ReadBytes(readFromMaster));
-                bytesRead += readFromMaster;
+                bytesRead += (uint) readFromMaster;
 
                 // Then, we continuously jump to the next section, until all the data is retrieved.
                 while (bytesRead < maxBytesRead)
@@ -114,7 +191,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                     var bytesToRead = (int) Math.Min(newSectReader.BaseStream.Length,
                         maxBytesRead - bytes.Count);
                     bytes.AddRange(newSectReader.ReadBytes(bytesToRead));
-                    bytesRead += bytesToRead;
+                    bytesRead += (uint) bytesToRead;
                 }
 
                 _dataMap[fileInfo.FullPath] = bytes.ToArray();

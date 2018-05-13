@@ -5,6 +5,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
     public struct FileInfo
     {
         public string Path { get; set; }
+        public string OriginalPath { get; set; }
         public string File { get; set; }
         public string Hash { get; set; }
 
@@ -19,6 +20,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         public int CompressedLength { get; set; }
 
         public string FullPath => $"{Path}/{File}";
+        public string OriginalFullPath => $"{OriginalPath}/{File}";
     }
         
     [Flags]

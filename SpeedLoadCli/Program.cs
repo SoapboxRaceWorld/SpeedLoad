@@ -19,15 +19,19 @@ namespace SpeedLoadCli
 
             var downloader = new DownloadManager();
 
-            if (!File.Exists($"{args[0]}/nfsw.exe"))
+//            if (!File.Exists($"{args[0]}/nfsw.exe"))
             {
                 var staticCdnSource = new StaticCdnSource(new CDNDownloadOptions
                 {
-                    Download = DownloadData.GameBase | DownloadData.Tracks |
-                               DownloadData.Speech,
+                    Download = DownloadData.GameBase,
                     GameDirectory = args[0],
                     GameVersion = "1614b",
                     GameLanguage = "en"
+                });
+                
+                staticCdnSource.ProgressUpdated.Add((length, downloaded, compressedLength, file) =>
+                {
+                    Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
                 });
                 
                 downloader.Sources.Add(staticCdnSource);

@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml;
-
+using LibSpeedLoad.Core.Download.Events;
 using LibSpeedLoad.Core.Download.Sources.StaticCDN;
 using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
@@ -21,12 +21,12 @@ namespace LibSpeedLoad.Core.Download.Sources
      */
     public class StaticCdnSource : DownloaderSource
     {
-        private struct Header
+        public struct Header
         {
-            public long Length { get; set; }
-            public long CompressedLength { get; set; }
-            public long FirstCabinet { get; set; }
-            public long LastCabinet { get; set; }
+            public ulong Length { get; set; }
+            public ulong CompressedLength { get; set; }
+            public ulong FirstCabinet { get; set; }
+            public ulong LastCabinet { get; set; }
         }
 
         private class DownloadDatabase
@@ -50,7 +50,9 @@ namespace LibSpeedLoad.Core.Download.Sources
         private readonly string _speechIndexUrl;
 
         private readonly CDNDownloadOptions _downloadOptions;
-        private readonly CDNDownloader _downloader = new CDNDownloader();
+        private CDNDownloader _downloader;
+        
+        public List<ProgressUpdated> ProgressUpdated { get; } = new List<ProgressUpdated>();
 
         /**
          * Constructs the source.
@@ -87,11 +89,13 @@ namespace LibSpeedLoad.Core.Download.Sources
                     downloads.Add(_tracksHighIndexUrl);
                 if (_downloadOptions.Download.HasFlag(DownloadData.Speech))
                     downloads.Add(_speechIndexUrl);
-
+                
                 foreach (var url in downloads)
                 {
                     Console.WriteLine($"Retrieving {url}");
                     await LoadIndex(url);
+                    
+                    _downloader.Reset();
                 }
             });
         }
@@ -117,10 +121,15 @@ namespace LibSpeedLoad.Core.Download.Sources
                     doc.Load(new StringReader(data));
 
                     var database = BuildDatabase(doc);
-
+                    
+                    _downloader = new CDNDownloader(database.Header);
+                    _downloader.ProgressUpdated.Clear();
+                    _downloader.ProgressUpdated.AddRange(ProgressUpdated);
+                    
                     await database.Files
                         .Select(f =>
                         {
+                            f.OriginalPath = f.Path;
                             f.Path = f.Path.Replace("CDShift", _downloadOptions.GameDirectory);
 
                             return f;
@@ -161,14 +170,14 @@ namespace LibSpeedLoad.Core.Download.Sources
                 Header = new Header
                 {
                     Length =
-                        long.Parse(headerEl["length"]?.InnerText ??
+                        ulong.Parse(headerEl["length"]?.InnerText ??
                                    throw new InvalidMetadataException("Missing length field in header?")),
                     CompressedLength =
-                        long.Parse(headerEl["compressed"]?.InnerText ??
+                        ulong.Parse(headerEl["compressed"]?.InnerText ??
                                    throw new InvalidMetadataException("Missing compressed length field in header?")),
-                    FirstCabinet = long.Parse(headerEl["firstcab"]?.InnerText ??
+                    FirstCabinet = ulong.Parse(headerEl["firstcab"]?.InnerText ??
                                               throw new InvalidMetadataException("Missing firstcab field in header?")),
-                    LastCabinet = long.Parse(headerEl["lastcab"]?.InnerText ??
+                    LastCabinet = ulong.Parse(headerEl["lastcab"]?.InnerText ??
                                              throw new InvalidMetadataException("Missing lastcab field in header?")),
                 }
             };
