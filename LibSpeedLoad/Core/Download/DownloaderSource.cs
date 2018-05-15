@@ -11,9 +11,16 @@ namespace LibSpeedLoad.Core.Download
      */
     public abstract class DownloaderSource
     {
-        /**
-         * Begin the download process.
-         */
+        /// <summary>
+        /// Begin the download process.
+        /// </summary>
+        /// <returns>The downloader task.</returns>
         public abstract Task Download();
+
+        /// <summary>
+        /// Begin the process of verifying files.
+        /// </summary>
+        /// <returns>The verifier task.</returns>
+        public abstract Task VerifyHashes();
     }
 }

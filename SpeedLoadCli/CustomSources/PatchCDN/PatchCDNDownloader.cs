@@ -16,7 +16,6 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
     public class PatchCDNDownloader : Downloader<FileInfo>
     {
         private readonly HttpClient _client = new HttpClient();
-        private readonly Dictionary<string, string> _hashDictionary = new Dictionary<string, string>();
 
         public override Task StartDownload(string url, IEnumerable<FileInfo> files)
         {
@@ -52,21 +51,7 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
                         outStream.Write(fileData, 0, fileData.Length);
                     }
 
-                    _hashDictionary[Path.Combine(file.FullPath, file.Name)] = file.Hash256;
                 }
-
-                Parallel.ForEach(_hashDictionary, hp =>
-                {
-                    using (var sha256 = SHA256.Create())
-                    using (var inStream = File.OpenRead(hp.Key))
-                    {
-                        var calcHash = DebugUtil.Sha256ToString(sha256.ComputeHash(inStream));
-
-                        DebugUtil.EnsureCondition(
-                            calcHash == hp.Value,
-                            () => $"Hash for {hp.Key} is invalid! Expected {hp.Value}, got {calcHash}");
-                    }
-                });
             });
         }
     }

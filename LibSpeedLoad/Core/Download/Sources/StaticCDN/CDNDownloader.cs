@@ -19,7 +19,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
     public class CDNDownloader : Downloader<SFileInfo>
     {
         private readonly HttpClient _client = new HttpClient();
-        private readonly ConcurrentDictionary<string, byte[]> _dataMap = new ConcurrentDictionary<string, byte[]>();
 
         // Used for LZMA decompression
         private readonly IntPtr _propsSizePtr = new IntPtr(5);
@@ -42,7 +41,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
         public void Reset()
         {
             _bytesRead = 0;
-            _dataMap.Clear();
         }
 
         /// <summary>
@@ -76,8 +74,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         continue;
                     }
 
-                    _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
-
                     reader.BaseStream.Position = fileInfo.Offset;
 
                     Directory.CreateDirectory(fileInfo.Path);
@@ -99,8 +95,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         listener.Invoke(_header.Length, _bytesRead, _header.CompressedLength,
                             fileInfo.OriginalFullPath);
                     }
-
-                    _dataMap[fileInfo.FullPath] = null;
                 }
 
 //                await fileList.ParallelForEachAsync(async fileInfo =>
@@ -194,24 +188,26 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                     bytesRead += (uint) bytesToRead;
                 }
 
-                _dataMap[fileInfo.FullPath] = bytes.ToArray();
                 using (var outStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                 {
-                    outStream.Write(_dataMap[fileInfo.FullPath], 0, bytes.Count);
+                    outStream.Write(bytes.ToArray(), 0, bytes.Count);
                 }
 
                 bytes.Clear();
             }
             else
             {
+                var bytes = new byte[fileInfo.Length];
                 // Thankfully there are some files that are small and don't require reading multiple sections at a time.
-                binaryReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
+                binaryReader.Read(bytes, 0, bytes.Length);
 
                 using (var fileStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                 {
-                    fileStream.Write(_dataMap[fileInfo.FullPath], 0,
-                        _dataMap[fileInfo.FullPath].Length);
+                    fileStream.Write(bytes, 0,
+                        bytes.Length);
                 }
+
+                bytes = null;
             }
         }
 
@@ -289,11 +285,13 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                 var props = binaryReader.ReadBytes(5);
                 binaryReader.BaseStream.Seek(8, SeekOrigin.Current);
 
-                binaryReader.Read(_dataMap[fileInfo.FullPath], 0, _dataMap[fileInfo.FullPath].Length);
+                var bytes = new byte[fileInfo.CompressedLength];
+                
+                binaryReader.Read(bytes, 0, bytes.Length);
 
                 var decompressedOutput = new byte[destLen.ToInt32()];
 
-                LZMA.LzmaUncompress(decompressedOutput, ref destLen, _dataMap[fileInfo.FullPath],
+                LZMA.LzmaUncompress(decompressedOutput, ref destLen, bytes,
                     ref srcLen, props,
                     _propsSizePtr);
 
@@ -302,6 +300,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                     outStream.Write(decompressedOutput, 0, decompressedOutput.Length);
                 }
 
+                bytes = null;
                 decompressedOutput = null;
                 props = null;
             }

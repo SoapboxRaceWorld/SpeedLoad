@@ -92,15 +92,35 @@ namespace LibSpeedLoad.Core.Download.Sources
                 
                 foreach (var url in downloads)
                 {
-                    Console.WriteLine($"Retrieving {url}");
-                    await LoadIndex(url);
+                    var database = await LoadIndex(url);
+                    
+                    await database.Files
+                        .Select(f =>
+                        {
+                            f.OriginalPath = f.Path;
+                            f.Path = f.Path.Replace("CDShift", _downloadOptions.GameDirectory);
+
+                            return f;
+                        })
+                        .GroupBy(f => f.Section)
+                        .ParallelForEachAsync(async g =>
+                        {
+                            var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
+
+                            await _downloader.StartDownload(sectionUrl, g.ToList());
+                        });
                     
                     _downloader.Reset();
                 }
             });
         }
 
-        private Task LoadIndex(string url)
+        public override Task VerifyHashes()
+        {
+            throw new NotImplementedException();
+        }
+
+        private Task<DownloadDatabase> LoadIndex(string url)
         {
             return Task.Run(async () =>
             {
@@ -125,22 +145,8 @@ namespace LibSpeedLoad.Core.Download.Sources
                     _downloader = new CDNDownloader(database.Header);
                     _downloader.ProgressUpdated.Clear();
                     _downloader.ProgressUpdated.AddRange(ProgressUpdated);
-                    
-                    await database.Files
-                        .Select(f =>
-                        {
-                            f.OriginalPath = f.Path;
-                            f.Path = f.Path.Replace("CDShift", _downloadOptions.GameDirectory);
 
-                            return f;
-                        })
-                        .GroupBy(f => f.Section)
-                        .ParallelForEachAsync(async g =>
-                        {
-                            var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
-
-                            await _downloader.StartDownload(sectionUrl, g.ToList());
-                        });
+                    return database;
                 }
             });
         }
