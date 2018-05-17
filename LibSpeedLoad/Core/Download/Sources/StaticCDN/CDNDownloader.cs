@@ -96,33 +96,8 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                             fileInfo.OriginalFullPath);
                     }
                 }
-
-//                await fileList.ParallelForEachAsync(async fileInfo =>
-//                {
-//                    if (File.Exists(fileInfo.FullPath))
-//                    {
-//                        return;
-//                    }
-//
-//                    _dataMap[fileInfo.FullPath] = new byte[fileInfo.Length];
-//
-//                    reader.BaseStream.Position = fileInfo.Offset;
-//
-//                    Directory.CreateDirectory(fileInfo.Path);
-//
-//                    // Is it compressed?
-//                    if (fileInfo.CompressedLength != -1)
-//                    {
-//                        await HandleCompressedFile(fileInfo, reader, url);
-//                    }
-//                    else
-//                    {
-//                        await HandleUncompressedFile(fileInfo, reader, url);
-//                    }
-//
-//                    _dataMap[fileInfo.FullPath] = null;
-//                    reader.BaseStream.Position = 0;
-//                }, 30);
+                
+                reader.Dispose();
             });
         }
 
@@ -186,6 +161,8 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         maxBytesRead - bytes.Count);
                     bytes.AddRange(newSectReader.ReadBytes(bytesToRead));
                     bytesRead += (uint) bytesToRead;
+                    
+                    newSectReader.Dispose();
                 }
 
                 using (var outStream = new FileStream(fileInfo.FullPath, FileMode.Create))
@@ -194,6 +171,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                 }
 
                 bytes.Clear();
+                bytes = null;
             }
             else
             {

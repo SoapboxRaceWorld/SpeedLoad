@@ -65,5 +65,38 @@ namespace LibSpeedLoad.Core
                 }
             });
         }
+        
+        public Task VerifyHashes()
+        {
+            return Task.Run(async () =>
+            {
+                try
+                {
+                    foreach (var source in Sources)
+                    {
+                        await source.VerifyHashes();
+                    }
+                }
+                catch (AggregateException e)
+                {
+                    foreach (var ex in e.InnerExceptions)
+                    {
+                        foreach (var handler in DownloadFailed)
+                        {
+                            handler.DynamicInvoke(ex);
+                        }
+
+                        break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    foreach (var handler in DownloadFailed)
+                    {
+                        handler.DynamicInvoke(e);
+                    }
+                }
+            });
+        }
     }
 }

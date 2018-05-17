@@ -50,8 +50,10 @@ namespace LibSpeedLoad.Core.Download.Sources
         private readonly string _speechIndexUrl;
 
         private readonly CDNDownloadOptions _downloadOptions;
-        private CDNDownloader _downloader;
+        private readonly List<CDNIndex> _indices;
         
+        private CDNDownloader _downloader;
+
         public List<ProgressUpdated> ProgressUpdated { get; } = new List<ProgressUpdated>();
 
         /**
@@ -67,57 +69,58 @@ namespace LibSpeedLoad.Core.Download.Sources
             _speechIndexUrl =
                 string.Format(IndexUrlFormat, _downloadOptions.GameVersion,
                     $"{_downloadOptions.GameLanguage}/");
+            _indices = GetIndices();
         }
 
         public override Task Download()
         {
             return Task.Run(async () =>
             {
-                var downloads = new List<string>();
-
-                if (_downloadOptions.Download == DownloadData.All)
+                foreach (var index in _indices)
                 {
-                    _downloadOptions.Download = DownloadData.GameBase | DownloadData.Tracks | DownloadData.Speech |
-                                                DownloadData.TracksHigh;
-                }
+                    var database = await LoadIndex(index.Url);
 
-                if (_downloadOptions.Download.HasFlag(DownloadData.GameBase))
-                    downloads.Add(_gameIndexUrl);
-                if (_downloadOptions.Download.HasFlag(DownloadData.Tracks))
-                    downloads.Add(_tracksIndexUrl);
-                if (_downloadOptions.Download.HasFlag(DownloadData.TracksHigh))
-                    downloads.Add(_tracksHighIndexUrl);
-                if (_downloadOptions.Download.HasFlag(DownloadData.Speech))
-                    downloads.Add(_speechIndexUrl);
-                
-                foreach (var url in downloads)
-                {
-                    var database = await LoadIndex(url);
-                    
                     await database.Files
-                        .Select(f =>
-                        {
-                            f.OriginalPath = f.Path;
-                            f.Path = f.Path.Replace("CDShift", _downloadOptions.GameDirectory);
-
-                            return f;
-                        })
                         .GroupBy(f => f.Section)
                         .ParallelForEachAsync(async g =>
                         {
-                            var sectionUrl = string.Format(SectionUrlFormat, url.Replace("/index.xml", ""), g.Key);
+                            var sectionUrl = string.Format(SectionUrlFormat, index.Url.Replace("/index.xml", ""),
+                                g.Key);
 
                             await _downloader.StartDownload(sectionUrl, g.ToList());
                         });
-                    
+
                     _downloader.Reset();
+
+                    var hashManager = new HashManager(index.Key);
+
+                    foreach (var file in database.Files)
+                    {
+                        hashManager.Put(file.FullPath, file.Hash);
+                    }
+
+                    hashManager.Save();
                 }
             });
         }
 
         public override Task VerifyHashes()
         {
-            throw new NotImplementedException();
+            return Task.Run(async () =>
+            {
+                foreach (var index in _indices)
+                {
+                    var database = await LoadIndex(index.Url);
+                    var hashManager = new HashManager(index.Key);
+                    
+                    hashManager.Load();
+
+                    foreach (var file in database.Files)
+                    {
+                        hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
+                    }
+                }
+            });
         }
 
         private Task<DownloadDatabase> LoadIndex(string url)
@@ -134,14 +137,15 @@ namespace LibSpeedLoad.Core.Download.Sources
                             $"Failed to retrieve index {url} - got code {response.StatusCode.ToString()}");
                     }
 
-                    // The index response is just XML.
                     var data = await response.Content.ReadAsStringAsync();
                     var doc = new XmlDocument();
 
                     doc.Load(new StringReader(data));
 
                     var database = BuildDatabase(doc);
-                    
+
+                    Console.WriteLine($"{database.Header.Length} vs {database.Files.Sum(f => f.Length)}");
+
                     _downloader = new CDNDownloader(database.Header);
                     _downloader.ProgressUpdated.Clear();
                     _downloader.ProgressUpdated.AddRange(ProgressUpdated);
@@ -177,14 +181,14 @@ namespace LibSpeedLoad.Core.Download.Sources
                 {
                     Length =
                         ulong.Parse(headerEl["length"]?.InnerText ??
-                                   throw new InvalidMetadataException("Missing length field in header?")),
+                                    throw new InvalidMetadataException("Missing length field in header?")),
                     CompressedLength =
                         ulong.Parse(headerEl["compressed"]?.InnerText ??
-                                   throw new InvalidMetadataException("Missing compressed length field in header?")),
+                                    throw new InvalidMetadataException("Missing compressed length field in header?")),
                     FirstCabinet = ulong.Parse(headerEl["firstcab"]?.InnerText ??
-                                              throw new InvalidMetadataException("Missing firstcab field in header?")),
+                                               throw new InvalidMetadataException("Missing firstcab field in header?")),
                     LastCabinet = ulong.Parse(headerEl["lastcab"]?.InnerText ??
-                                             throw new InvalidMetadataException("Missing lastcab field in header?")),
+                                              throw new InvalidMetadataException("Missing lastcab field in header?")),
                 }
             };
 
@@ -215,7 +219,8 @@ namespace LibSpeedLoad.Core.Download.Sources
 
                 database.Files.Add(new StaticCDN.FileInfo
                 {
-                    Path = fileElement.SelectSingleNode("path")?.InnerText,
+                    Path = fileElement.SelectSingleNode("path")?.InnerText
+                        .Replace("CDShift", _downloadOptions.GameDirectory),
                     File = fileElement.SelectSingleNode("file")?.InnerText,
                     Hash = fileElement.SelectSingleNode("hash")?.InnerText,
                     Revision = uint.Parse(fileElement["revision"]?.InnerText ??
@@ -230,11 +235,50 @@ namespace LibSpeedLoad.Core.Download.Sources
                         fileElement.SelectSingleNode("compressed") != null
                             ? int.Parse(fileElement["compressed"]?.InnerText ??
                                         throw new InvalidMetadataException("Missing compressed length field"))
-                            : -1
+                            : -1,
+                    OriginalPath = fileElement.SelectSingleNode("path")?.InnerText
                 });
             }
 
             return database;
+        }
+
+        private List<CDNIndex> GetIndices()
+        {
+            var indices = new List<CDNIndex>();
+
+            if (_downloadOptions.Download == DownloadData.All)
+            {
+                _downloadOptions.Download = DownloadData.GameBase | DownloadData.Tracks | DownloadData.Speech |
+                                            DownloadData.TracksHigh;
+            }
+
+            if (_downloadOptions.Download.HasFlag(DownloadData.GameBase))
+                indices.Add(new CDNIndex
+                {
+                    Key = "",
+                    Url = _gameIndexUrl
+                });
+            if (_downloadOptions.Download.HasFlag(DownloadData.Tracks))
+                indices.Add(new CDNIndex
+                {
+                    Key = "Tracks",
+                    Url = _tracksIndexUrl
+                });
+            if (_downloadOptions.Download.HasFlag(DownloadData.TracksHigh))
+                indices.Add(new CDNIndex
+                {
+                    Key = "TracksHigh",
+                    Url = _tracksHighIndexUrl
+                });
+            if (_downloadOptions.Download.HasFlag(DownloadData.Speech))
+                indices.Add(new CDNIndex
+                {
+                    Key = _downloadOptions.GameLanguage,
+                    Url = _speechIndexUrl
+                });
+
+            return indices;
         }
     }
 }

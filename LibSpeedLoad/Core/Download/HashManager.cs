@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using LibSpeedLoad.Core.Exceptions;
 using LibSpeedLoad.Core.Utils;
 using Newtonsoft.Json;
 
@@ -50,7 +52,7 @@ namespace LibSpeedLoad.Core.Download
         /// <summary>
         /// The full hash file name.
         /// </summary>
-        public string HashFile => string.Format(HashFileFormat, _id);  
+        private string HashFile => string.Format(HashFileFormat, _id);  
 
         /// <summary>
         /// Initialize the hash manager.
@@ -60,6 +62,20 @@ namespace LibSpeedLoad.Core.Download
         {
             _id = id;
             _hashMap = new Dictionary<string, string>();
+        }
+
+        /// <summary>
+        /// Create the hash file if it is missing.
+        /// </summary>
+        public void CreateIfMissing()
+        {
+            if (!File.Exists(HashFile))
+            {
+                DataUtil.WriteJson(HashFile, new HashList
+                {
+                    Files = new List<HashFile>()
+                });
+            }
         }
 
         /// <summary>
@@ -78,13 +94,23 @@ namespace LibSpeedLoad.Core.Download
         }
 
         /// <summary>
+        /// Determine whether a hash has been inserted for a given file.
+        /// </summary>
+        /// <param name="filePath">The file path.</param>
+        /// <returns></returns>
+        public bool Has(string filePath)
+        {
+            return _hashMap.ContainsKey(filePath);
+        }
+
+        /// <summary>
         /// Get the hash for a file.
         /// </summary>
-        /// <param name="filePath"></param>
+        /// <param name="filePath">The file path.</param>
         /// <returns></returns>
         public string Get(string filePath)
         {
-            if (!_hashMap.ContainsKey(filePath))
+            if (!Has(filePath))
             {
                 throw new ArgumentException($"No value found for key {filePath}");
             }
@@ -103,11 +129,32 @@ namespace LibSpeedLoad.Core.Download
         }
 
         /// <summary>
+        /// Perform a hash validation.
+        /// </summary>
+        /// <param name="filePath">The file path to check.</param>
+        /// <param name="hash">The hash to check.</param>
+        public void Check(string filePath, string hash)
+        {
+            if (!Has(filePath))
+            {
+                throw new ArgumentException($"No value found for key {filePath}");
+            }
+
+            if (_hashMap[filePath] != hash)
+            {
+                throw new IntegrityException($"Hash mismatch for {filePath}: given {hash}, got {_hashMap[filePath]}");
+            }
+        }
+
+        /// <summary>
         /// Save the hash mapping data to the file.
         /// </summary>
         public void Save()
         {
-            var list = new HashList();
+            var list = new HashList
+            {
+                Files = new List<HashFile>()
+            };
             
             foreach (var keyValuePair in _hashMap)
             {

@@ -5,8 +5,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Easy.Common.Extensions;
 using LibSpeedLoad.Core.Download;
 using LibSpeedLoad.Core.Exceptions;
+using LibSpeedLoad.Core.Utils;
 using Newtonsoft.Json;
 using SpeedLoadCli.CustomSources.PatchCDN;
 
@@ -27,41 +29,40 @@ namespace SpeedLoadCli.CustomSources
         private readonly PatchCDNDownloader _downloader = new PatchCDNDownloader();
         private readonly PatchDownloadOptions _downloadOptions;
 
-        private readonly HashManager _hashManager;
-
         /**
          * Constructs the source.
          */
         public PatchCDNSource(PatchDownloadOptions downloadOptions)
         {
             _downloadOptions = downloadOptions ?? throw new ArgumentNullException(nameof(downloadOptions));
-            _hashManager = new HashManager("sbrw");
         }
 
         public override Task Download()
         {
-            _hashManager.Reset();
-            
             return Task.Run(async () =>
             {
                 var patch = await FetchPatch();
 
                 var fileList = await FetchPatchManifest(patch.PatchId);
                 var rootUrl = string.Format(PatchRootFormat, patch.PatchId);
-
-                fileList.Files = fileList.Files.Select(f =>
-                {
-                    f.FullPath = Path.Combine(_downloadOptions.GameDirectory, f.Path);
-
-                    return f;
-                }).ToList();
                 
                 await _downloader.StartDownload(rootUrl, fileList.Files);
                 
-                foreach (var file in fileList.Files)
-                {
-                    _hashManager.Put(file.FullPath, file.Hash256);
-                }
+                fileList.Files.GroupBy(f => f.HashGroup)
+                    .ForEach(group =>
+                    {
+                        var hm = new HashManager(group.Key);
+                        
+                        hm.CreateIfMissing();
+                        hm.Load();
+
+                        foreach (var file in group)
+                        {
+                            hm.Put(file.FullFile, file.Hash);
+                        }
+                        
+                        hm.Save();
+                    });
             });
         }
 
@@ -72,11 +73,18 @@ namespace SpeedLoadCli.CustomSources
                 var patch = await FetchPatch();
                 var fileList = await FetchPatchManifest(patch.PatchId);
 
-                foreach (var file in fileList.Files)
-                {
-                    var fullPath = Path.Combine(_downloadOptions.GameDirectory, file.Path, file.Name);
-                    
-                }
+                fileList.Files.GroupBy(f => f.HashGroup)
+                    .ForEach(group =>
+                    {
+                        var hm = new HashManager(group.Key);
+                        
+                        hm.Load();
+
+                        foreach (var file in group)
+                        {
+                            hm.Check(file.FullFile, DataUtil.ComputeHash(file.FullFile));
+                        }
+                    });
             });
         }
 
@@ -105,7 +113,17 @@ namespace SpeedLoadCli.CustomSources
 
             var data = await manifestResponse.Content.ReadAsStringAsync();
 
-            return JsonConvert.DeserializeObject<FileList>(data);
+            var list = JsonConvert.DeserializeObject<FileList>(data);
+
+            list.Files = list.Files.Select(f =>
+            {
+                f.FullPath = Path.Combine(_downloadOptions.GameDirectory, f.Path);
+                f.FullFile = Path.Combine(f.FullPath, f.Name);
+
+                return f;
+            }).ToList();
+            
+            return list;
         }
     }
 }

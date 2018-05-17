@@ -63,8 +63,8 @@
     <Compile Include="Core\Download\Sources\Downloader.cs" />
     <Compile Include="Core\Download\Sources\StaticCDNSource.cs" />
     <Compile Include="Core\Download\Sources\StaticCDN\CDNDownloader.cs" />
+    <Compile Include="Core\Download\Sources\StaticCDN\CDNIndex.cs" />
     <Compile Include="Core\Download\Sources\StaticCDN\CDNStructures.cs" />
-    <Compile Include="Core\Exceptions\CorruptDataException.cs" />
     <Compile Include="Core\Exceptions\IntegrityException.cs" />
     <Compile Include="Core\Exceptions\InvalidMetadataException.cs" />
     <Compile Include="Core\Exceptions\DownloaderWebException.cs" />

@@ -23,7 +23,7 @@ namespace SpeedLoadCli
             {
                 var staticCdnSource = new StaticCdnSource(new CDNDownloadOptions
                 {
-                    Download = DownloadData.GameBase,
+                    Download = DownloadData.GameBase | DownloadData.TracksHigh,
                     GameDirectory = args[0],
                     GameVersion = "1614b",
                     GameLanguage = "en"
@@ -50,6 +50,7 @@ namespace SpeedLoadCli
             });
 
             await downloader.Download();
+            await downloader.VerifyHashes();
         }
     }
 }

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
-using Easy.Common.Extensions;
 using LibSpeedLoad.Core.Download.Sources;
 using LibSpeedLoad.Core.Exceptions;
-using LibSpeedLoad.Core.Utils;
 
 namespace SpeedLoadCli.CustomSources.PatchCDN
 {

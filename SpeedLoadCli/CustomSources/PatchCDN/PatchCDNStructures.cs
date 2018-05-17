@@ -45,6 +45,12 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
         public string FullPath { get; set; }
         
         [JsonIgnore]
+        public string FullFile { get; set; }
+        
+        [JsonProperty("hash_group")]
+        public string HashGroup { get; set; }
+        
+        [JsonIgnore]
         public string WebPath { get; set; }
     }
     
