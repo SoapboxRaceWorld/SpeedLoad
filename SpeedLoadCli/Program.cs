@@ -34,9 +34,9 @@ namespace SpeedLoadCli
                     Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
                 });
                 
-                staticCdnSource.VerificationProgressUpdated.Add((file, number, files) =>
+                staticCdnSource.VerificationProgressUpdated.Add((file, displayFile, number, files) =>
                 {
-                    Console.WriteLine($"verifying #{number}/{files}: {file}");
+                    Console.WriteLine($"verifying #{number}/{files}: {displayFile}");
                 });
             
                 staticCdnSource.VerificationFailed.Add((file, hash, actualHash) =>
@@ -52,9 +52,9 @@ namespace SpeedLoadCli
                 GameDirectory = args[0]
             });
             
-            patchCDNSource.VerificationProgressUpdated.Add((file, number, files) =>
+            patchCDNSource.VerificationProgressUpdated.Add((file, displayFile, number, files) =>
             {
-                Console.WriteLine($"verifying #{number}/{files}: {file}");
+                Console.WriteLine($"verifying #{number}/{files}: {displayFile}");
             });
             
             patchCDNSource.VerificationFailed.Add((file, hash, actualHash) =>

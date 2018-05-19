@@ -84,7 +84,7 @@ namespace SpeedLoadCli.CustomSources
                         {
                             foreach (var listener in VerificationProgressUpdated)
                             {
-                                listener.Invoke(file.FullFile, (uint) group.ToList().IndexOf(file) + 1, (uint) group.Count());
+                                listener.Invoke(file.FullFile, file.WebPath, (uint) group.ToList().IndexOf(file) + 1, (uint) group.Count());
                             }
 
                             try
@@ -134,6 +134,7 @@ namespace SpeedLoadCli.CustomSources
             {
                 f.FullPath = Path.Combine(_downloadOptions.GameDirectory, f.Path);
                 f.FullFile = Path.Combine(f.FullPath, f.Name);
+                f.WebPath = Path.Combine(f.Path, f.Name);
 
                 return f;
             }).ToList();

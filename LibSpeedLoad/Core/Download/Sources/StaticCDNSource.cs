@@ -119,7 +119,7 @@ namespace LibSpeedLoad.Core.Download.Sources
                     {
                         foreach (var listener in VerificationProgressUpdated)
                         {
-                            listener.Invoke(file.FullPath, (uint) database.Files.IndexOf(file) + 1, (uint) database.Files.Count);
+                            listener.Invoke(file.FullPath, file.OriginalFullPath, (uint) database.Files.IndexOf(file) + 1, (uint) database.Files.Count);
                         }
 
                         try
