@@ -21,7 +21,7 @@ namespace SpeedLoadCli.CustomSources.PatchCDN
 
                 foreach (var file in fileInfos)
                 {
-                    if (File.Exists(file.FullPath))
+                    if (File.Exists(file.FullFile))
                     {
                         continue;
                     }

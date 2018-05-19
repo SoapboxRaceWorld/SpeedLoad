@@ -44,12 +44,22 @@ namespace SpeedLoadCli
                     Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
                 });
                 
-                downloader.Sources.Add(staticCdnSource);
+//                downloader.Sources.Add(staticCdnSource);
             }
 
             var patchCDNSource = new PatchCDNSource(new PatchDownloadOptions
             {
                 GameDirectory = args[0]
+            });
+            
+            patchCDNSource.VerificationProgressUpdated.Add((file, number, files) =>
+            {
+                Console.WriteLine($"verifying #{number}/{files}: {file}");
+            });
+            
+            patchCDNSource.VerificationFailed.Add((file, hash, actualHash) =>
+            {
+                Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
             });
             
             downloader.Sources.Add(patchCDNSource);

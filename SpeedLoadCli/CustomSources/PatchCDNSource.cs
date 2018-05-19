@@ -82,7 +82,22 @@ namespace SpeedLoadCli.CustomSources
 
                         foreach (var file in group)
                         {
-                            hm.Check(file.FullFile, DataUtil.ComputeHash(file.FullFile));
+                            foreach (var listener in VerificationProgressUpdated)
+                            {
+                                listener.Invoke(file.FullFile, (uint) group.ToList().IndexOf(file) + 1, (uint) group.Count());
+                            }
+
+                            try
+                            {
+                                hm.Check(file.FullFile, DataUtil.ComputeHash(file.FullFile));
+                            }
+                            catch (IntegrityException e)
+                            {
+                                foreach (var listener in VerificationFailed)
+                                {
+                                    listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
+                                }
+                            }
                         }
                     });
             });
