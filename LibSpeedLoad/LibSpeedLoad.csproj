@@ -76,6 +76,8 @@
     <Compile Include="Core\Download\Events\DownloadCompleted.cs" />
     <Compile Include="Core\Download\Events\DownloadFailed.cs" />
     <Compile Include="Core\Download\Events\ProgressUpdated.cs" />
+    <Compile Include="Core\Download\Events\VerificationFailed.cs" />
+    <Compile Include="Core\Download\Events\VerificationProgressUpdated.cs" />
     <Compile Include="Core\Download\HashManager.cs" />
     <Compile Include="Core\Download\Sources\Downloader.cs" />
     <Compile Include="Core\Download\Sources\StaticCDNSource.cs" />

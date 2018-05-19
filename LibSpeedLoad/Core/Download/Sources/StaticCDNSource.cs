@@ -117,7 +117,22 @@ namespace LibSpeedLoad.Core.Download.Sources
 
                     foreach (var file in database.Files)
                     {
-                        hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
+                        foreach (var listener in VerificationProgressUpdated)
+                        {
+                            listener.Invoke(file.FullPath, (uint) database.Files.IndexOf(file) + 1, (uint) database.Files.Count);
+                        }
+
+                        try
+                        {
+                            hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
+                        }
+                        catch (IntegrityException e)
+                        {
+                            foreach (var listener in VerificationFailed)
+                            {
+                                listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
+                            }
+                        }
                     }
                 }
             });

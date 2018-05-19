@@ -142,7 +142,7 @@ namespace LibSpeedLoad.Core.Download
 
             if (_hashMap[filePath] != hash)
             {
-                throw new IntegrityException($"Hash mismatch for {filePath}: given {hash}, got {_hashMap[filePath]}");
+                throw new IntegrityException(filePath, _hashMap[filePath], hash);
             }
         }
 

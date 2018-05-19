@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using LibSpeedLoad.Core.Download.Events;
 
 namespace LibSpeedLoad.Core.Download
 {
@@ -11,6 +12,9 @@ namespace LibSpeedLoad.Core.Download
      */
     public abstract class DownloaderSource
     {
+        public List<VerificationProgressUpdated> VerificationProgressUpdated { get; } = new List<VerificationProgressUpdated>();
+        public List<VerificationFailed> VerificationFailed { get; } = new List<VerificationFailed>();
+        
         /// <summary>
         /// Begin the download process.
         /// </summary>

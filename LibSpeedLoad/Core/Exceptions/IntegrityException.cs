@@ -2,12 +2,15 @@
 {
     public class IntegrityException : SpeedLoadException
     {
-        public IntegrityException()
+        public string FilePath { get; }
+        public string ExpectedHash { get; }
+        public string ActualHash { get; }
+        
+        public IntegrityException(string filePath, string expectedHash, string actualHash)
         {
-        }
-
-        public IntegrityException(string message) : base(message)
-        {
+            FilePath = filePath;
+            ExpectedHash = expectedHash;
+            ActualHash = actualHash;
         }
     }
 }

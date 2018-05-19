@@ -34,13 +34,25 @@ namespace SpeedLoadCli
                     Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
                 });
                 
+                staticCdnSource.VerificationProgressUpdated.Add((file, number, files) =>
+                {
+                    Console.WriteLine($"verifying #{number}/{files}: {file}");
+                });
+            
+                staticCdnSource.VerificationFailed.Add((file, hash, actualHash) =>
+                {
+                    Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
+                });
+                
                 downloader.Sources.Add(staticCdnSource);
             }
-            
-            downloader.Sources.Add(new PatchCDNSource(new PatchDownloadOptions
+
+            var patchCDNSource = new PatchCDNSource(new PatchDownloadOptions
             {
                 GameDirectory = args[0]
-            }));
+            });
+            
+            downloader.Sources.Add(patchCDNSource);
 
             downloader.DownloadCompleted.Add(() => { Console.WriteLine("Download completed!"); });
             downloader.DownloadFailed.Add(e =>
