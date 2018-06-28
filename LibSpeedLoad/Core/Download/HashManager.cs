@@ -168,6 +168,8 @@ namespace LibSpeedLoad.Core.Download
             DataUtil.WriteJson(HashFile, list);
         }
 
+        public bool Exists => File.Exists(HashFile);
+
         /// <summary>
         /// Reset the hash table.
         /// </summary>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using LibSpeedLoad.Core;
@@ -29,22 +30,22 @@ namespace SpeedLoadCli
                     GameLanguage = "en"
                 });
                 
-                staticCdnSource.ProgressUpdated.Add((length, downloaded, compressedLength, file) =>
-                {
-                    Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
-                });
+                //staticCdnSource.ProgressUpdated.Add((length, downloaded, compressedLength, file) =>
+                //{
+                //    Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
+                //});
                 
-                staticCdnSource.VerificationProgressUpdated.Add((file, displayFile, number, files) =>
-                {
-                    Console.WriteLine($"verifying #{number}/{files}: {displayFile}");
-                });
+                //staticCdnSource.VerificationProgressUpdated.Add((file, displayFile, number, files) =>
+                //{
+                //    Console.WriteLine($"verifying #{number}/{files}: {displayFile}");
+                //});
             
-                staticCdnSource.VerificationFailed.Add((file, hash, actualHash) =>
-                {
-                    Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
-                });
-                
-//                downloader.Sources.Add(staticCdnSource);
+                //staticCdnSource.VerificationFailed.Add((file, hash, actualHash) =>
+                //{
+                //    Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
+                //});
+
+                downloader.Sources.Add(staticCdnSource);
             }
 
             var patchCDNSource = new PatchCDNSource(new PatchDownloadOptions
@@ -71,8 +72,17 @@ namespace SpeedLoadCli
                 Console.WriteLine(e.StackTrace);
             });
 
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
             await downloader.Download();
+            stopwatch.Stop();
+            Console.WriteLine($"Download ended in {stopwatch.ElapsedMilliseconds}ms");
+            stopwatch.Reset();
+            stopwatch.Start();
             await downloader.VerifyHashes();
+            stopwatch.Stop();
+            Console.WriteLine($"Verification ended in {stopwatch.ElapsedMilliseconds}ms");
+            Console.ReadKey();
         }
     }
 }

@@ -51,7 +51,8 @@ namespace LibSpeedLoad.Core.Download.Sources
 
         private readonly CDNDownloadOptions _downloadOptions;
         private readonly List<CDNIndex> _indices;
-        
+        private readonly Dictionary<string, DownloadDatabase> _databaseCache;
+
         private CDNDownloader _downloader;
 
         public List<ProgressUpdated> ProgressUpdated { get; } = new List<ProgressUpdated>();
@@ -69,7 +70,13 @@ namespace LibSpeedLoad.Core.Download.Sources
             _speechIndexUrl =
                 string.Format(IndexUrlFormat, _downloadOptions.GameVersion,
                     $"{_downloadOptions.GameLanguage}/");
+            _databaseCache = new Dictionary<string, DownloadDatabase>();
             _indices = GetIndices();
+
+            foreach (var index in _indices)
+            {
+                _databaseCache[index.Key] = FetchIndex(index.Url).Result;
+            }
         }
 
         public override Task Download()
@@ -78,7 +85,11 @@ namespace LibSpeedLoad.Core.Download.Sources
             {
                 foreach (var index in _indices)
                 {
-                    var database = await LoadIndex(index.Url);
+                    var hashManager = new HashManager(index.Key);
+
+                    if (hashManager.Exists) continue;
+
+                    var database = await LoadIndex(index.Url, index.Key);
 
                     await database.Files
                         .GroupBy(f => f.Section)
@@ -91,8 +102,6 @@ namespace LibSpeedLoad.Core.Download.Sources
                         });
 
                     _downloader.Reset();
-
-                    var hashManager = new HashManager(index.Key);
 
                     foreach (var file in database.Files)
                     {
@@ -108,18 +117,19 @@ namespace LibSpeedLoad.Core.Download.Sources
         {
             return Task.Run(async () =>
             {
-                foreach (var index in _indices)
+                await _indices.ParallelForEachAsync(async index =>
                 {
-                    var database = await LoadIndex(index.Url);
+                    var database = _databaseCache[index.Key];
                     var hashManager = new HashManager(index.Key);
-                    
+
                     hashManager.Load();
 
-                    foreach (var file in database.Files)
+                    await database.Files.ParallelForEachAsync(async file =>
                     {
                         foreach (var listener in VerificationProgressUpdated)
                         {
-                            listener.Invoke(file.FullPath, file.OriginalFullPath, (uint) database.Files.IndexOf(file) + 1, (uint) database.Files.Count);
+                            listener.Invoke(file.FullPath, file.OriginalFullPath,
+                                (uint)database.Files.IndexOf(file) + 1, (uint)database.Files.Count);
                         }
 
                         try
@@ -133,12 +143,58 @@ namespace LibSpeedLoad.Core.Download.Sources
                                 listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
                             }
                         }
-                    }
-                }
+                    }, 8);
+                    //foreach (var file in database.Files)
+                    //{
+                    //    foreach (var listener in VerificationProgressUpdated)
+                    //    {
+                    //        listener.Invoke(file.FullPath, file.OriginalFullPath, (uint)database.Files.IndexOf(file) + 1, (uint)database.Files.Count);
+                    //    }
+
+                    //    try
+                    //    {
+                    //        hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
+                    //    }
+                    //    catch (IntegrityException e)
+                    //    {
+                    //        foreach (var listener in VerificationFailed)
+                    //        {
+                    //            listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
+                    //        }
+                    //    }
+                    //}
+                }, 8);
+                //foreach (var index in _indices)
+                //{
+                //    var database = _databaseCache[index.Key];
+                //    var hashManager = new HashManager(index.Key);
+
+                //    hashManager.Load();
+
+                //    foreach (var file in database.Files)
+                //    {
+                //        foreach (var listener in VerificationProgressUpdated)
+                //        {
+                //            listener.Invoke(file.FullPath, file.OriginalFullPath, (uint)database.Files.IndexOf(file) + 1, (uint)database.Files.Count);
+                //        }
+
+                //        try
+                //        {
+                //            hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
+                //        }
+                //        catch (IntegrityException e)
+                //        {
+                //            foreach (var listener in VerificationFailed)
+                //            {
+                //                listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
+                //            }
+                //        }
+                //    }
+                //}
             });
         }
 
-        private Task<DownloadDatabase> LoadIndex(string url)
+        private Task<DownloadDatabase> FetchIndex(string url)
         {
             return Task.Run(async () =>
             {
@@ -159,14 +215,24 @@ namespace LibSpeedLoad.Core.Download.Sources
 
                     var database = BuildDatabase(doc);
 
-                    Console.WriteLine($"{database.Header.Length} vs {database.Files.Sum(f => f.Length)}");
-
-                    _downloader = new CDNDownloader(database.Header);
-                    _downloader.ProgressUpdated.Clear();
-                    _downloader.ProgressUpdated.AddRange(ProgressUpdated);
-
                     return database;
                 }
+            });
+        }
+
+        private Task<DownloadDatabase> LoadIndex(string url, string key)
+        {
+            return Task.Run(async () =>
+            {
+                var database = _databaseCache[key];
+
+                Console.WriteLine($"{database.Header.Length} vs {database.Files.Sum(f => f.Length)}");
+
+                _downloader = new CDNDownloader(database.Header);
+                _downloader.ProgressUpdated.Clear();
+                _downloader.ProgressUpdated.AddRange(ProgressUpdated);
+
+                return database;
             });
         }
 
