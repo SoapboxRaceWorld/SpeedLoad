@@ -24,16 +24,16 @@ namespace SpeedLoadCli
             {
                 var staticCdnSource = new StaticCdnSource(new CDNDownloadOptions
                 {
-                    Download = DownloadData.GameBase | DownloadData.TracksHigh,
+                    Download = DownloadData.GameBase | DownloadData.Tracks | DownloadData.TracksHigh | DownloadData.Speech,
                     GameDirectory = args[0],
                     GameVersion = "1614b",
                     GameLanguage = "en"
                 });
 
-                //staticCdnSource.ProgressUpdated.Add((length, downloaded, compressedLength, file) =>
-                //{
-                //    Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
-                //});
+                staticCdnSource.ProgressUpdated.Add((length, downloaded, compressedLength, file) =>
+                {
+                    Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
+                });
 
                 //staticCdnSource.VerificationProgressUpdated.Add((file, displayFile, number, files) =>
                 //{

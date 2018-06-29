@@ -85,6 +85,8 @@ namespace LibSpeedLoad.Core.Download.Sources
                     _hashManagers[index.Key].Load();
                 }
             }
+
+            ;
         }
 
         public override Task Download()
@@ -93,7 +95,7 @@ namespace LibSpeedLoad.Core.Download.Sources
             {
                 foreach (var index in _indices)
                 {
-                    var hashManager = new HashManager(index.Key);
+                    var hashManager = _hashManagers[index.Key];
 
                     if (hashManager.Exists) continue;
 

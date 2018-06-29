@@ -95,8 +95,6 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                         listener.Invoke(_header.Length, _bytesRead, _header.CompressedLength,
                             fileInfo.OriginalFullPath);
                     }
-
-                    //GC.Collect();
                 }
                 
                 reader.Dispose();

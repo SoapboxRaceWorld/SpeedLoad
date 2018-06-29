@@ -45,14 +45,14 @@ namespace SpeedLoadCli.CustomSources
 
                 var fileList = await FetchPatchManifest(patch.PatchId);
                 var rootUrl = string.Format(PatchRootFormat, patch.PatchId);
-                
+
                 await _downloader.StartDownload(rootUrl, fileList.Files);
-                
+
                 fileList.Files.GroupBy(f => f.HashGroup)
                     .ForEach(group =>
                     {
                         var hm = new HashManager(group.Key);
-                        
+
                         hm.CreateIfMissing();
                         hm.Load();
 
@@ -60,7 +60,7 @@ namespace SpeedLoadCli.CustomSources
                         {
                             hm.Put(file.FullFile, file.Hash);
                         }
-                        
+
                         hm.Save();
                     });
             });
@@ -77,14 +77,14 @@ namespace SpeedLoadCli.CustomSources
                     .ForEach(group =>
                     {
                         var hm = new HashManager(group.Key);
-                        
+
                         hm.Load();
 
                         foreach (var file in group)
                         {
                             foreach (var listener in VerificationProgressUpdated)
                             {
-                                listener.Invoke(file.FullFile, file.WebPath, (uint) group.ToList().IndexOf(file) + 1, (uint) group.Count());
+                                listener.Invoke(file.FullFile, file.WebPath, (uint)group.ToList().IndexOf(file) + 1, (uint)group.Count());
                             }
 
                             try
@@ -138,7 +138,7 @@ namespace SpeedLoadCli.CustomSources
 
                 return f;
             }).ToList();
-            
+
             return list;
         }
     }
