@@ -165,12 +165,14 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                     newSectReader.Dispose();
                 }
 
+                var writeData = bytes.ToArray();
+                bytes.Clear();
+
                 using (var outStream = new FileStream(fileInfo.FullPath, FileMode.Create))
                 {
-                    outStream.Write(bytes.ToArray(), 0, bytes.Count);
+                    outStream.Write(writeData, 0, writeData.Length);
                 }
 
-                bytes.Clear();
                 bytes = null;
             }
             else
@@ -237,9 +239,11 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                 var destLen = new IntPtr(fileInfo.Length);
                 var srcLen = new IntPtr(fileInfo.CompressedLength - 13);
 
+                var inData = bytes.ToArray();
+                bytes.Clear();
                 var decompressedOutput = new byte[destLen.ToInt32()];
 
-                LZMA.LzmaUncompress(decompressedOutput, ref destLen, bytes.ToArray(),
+                LZMA.LzmaUncompress(decompressedOutput, ref destLen, inData,
                     ref srcLen, props,
                     _propsSizePtr);
 
@@ -250,8 +254,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
 
                 decompressedOutput = null;
                 props = null;
-
-                bytes.Clear();
+                inData = null;
             }
             else
             {
