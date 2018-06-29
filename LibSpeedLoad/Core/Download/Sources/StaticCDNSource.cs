@@ -52,6 +52,7 @@ namespace LibSpeedLoad.Core.Download.Sources
         private readonly CDNDownloadOptions _downloadOptions;
         private readonly List<CDNIndex> _indices;
         private readonly Dictionary<string, DownloadDatabase> _databaseCache;
+        private readonly Dictionary<string, HashManager> _hashManagers;
 
         private CDNDownloader _downloader;
 
@@ -71,11 +72,18 @@ namespace LibSpeedLoad.Core.Download.Sources
                 string.Format(IndexUrlFormat, _downloadOptions.GameVersion,
                     $"{_downloadOptions.GameLanguage}/");
             _databaseCache = new Dictionary<string, DownloadDatabase>();
+            _hashManagers = new Dictionary<string, HashManager>();
             _indices = GetIndices();
 
             foreach (var index in _indices)
             {
                 _databaseCache[index.Key] = FetchIndex(index.Url).Result;
+                _hashManagers[index.Key] = new HashManager(index.Key);
+
+                if (_hashManagers[index.Key].Exists)
+                {
+                    _hashManagers[index.Key].Load();
+                }
             }
         }
 
@@ -120,9 +128,7 @@ namespace LibSpeedLoad.Core.Download.Sources
                 await _indices.ParallelForEachAsync(async index =>
                 {
                     var database = _databaseCache[index.Key];
-                    var hashManager = new HashManager(index.Key);
-
-                    hashManager.Load();
+                    var hashManager = _hashManagers[index.Key];
 
                     await database.Files.ParallelForEachAsync(async file =>
                     {
@@ -143,54 +149,8 @@ namespace LibSpeedLoad.Core.Download.Sources
                                 listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
                             }
                         }
-                    }, 8);
-                    //foreach (var file in database.Files)
-                    //{
-                    //    foreach (var listener in VerificationProgressUpdated)
-                    //    {
-                    //        listener.Invoke(file.FullPath, file.OriginalFullPath, (uint)database.Files.IndexOf(file) + 1, (uint)database.Files.Count);
-                    //    }
-
-                    //    try
-                    //    {
-                    //        hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
-                    //    }
-                    //    catch (IntegrityException e)
-                    //    {
-                    //        foreach (var listener in VerificationFailed)
-                    //        {
-                    //            listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
-                    //        }
-                    //    }
-                    //}
-                }, 8);
-                //foreach (var index in _indices)
-                //{
-                //    var database = _databaseCache[index.Key];
-                //    var hashManager = new HashManager(index.Key);
-
-                //    hashManager.Load();
-
-                //    foreach (var file in database.Files)
-                //    {
-                //        foreach (var listener in VerificationProgressUpdated)
-                //        {
-                //            listener.Invoke(file.FullPath, file.OriginalFullPath, (uint)database.Files.IndexOf(file) + 1, (uint)database.Files.Count);
-                //        }
-
-                //        try
-                //        {
-                //            hashManager.Check(file.FullPath, DataUtil.ComputeHash(file.FullPath));
-                //        }
-                //        catch (IntegrityException e)
-                //        {
-                //            foreach (var listener in VerificationFailed)
-                //            {
-                //                listener.Invoke(e.FilePath, e.ExpectedHash, e.ActualHash);
-                //            }
-                //        }
-                //    }
-                //}
+                    }, 32);
+                }, 32);
             });
         }
 

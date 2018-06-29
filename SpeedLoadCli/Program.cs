@@ -29,21 +29,21 @@ namespace SpeedLoadCli
                     GameVersion = "1614b",
                     GameLanguage = "en"
                 });
-                
+
                 //staticCdnSource.ProgressUpdated.Add((length, downloaded, compressedLength, file) =>
                 //{
                 //    Console.WriteLine($"file: {file} - downloaded: {downloaded}/{length}");
                 //});
-                
+
                 //staticCdnSource.VerificationProgressUpdated.Add((file, displayFile, number, files) =>
                 //{
                 //    Console.WriteLine($"verifying #{number}/{files}: {displayFile}");
                 //});
-            
-                //staticCdnSource.VerificationFailed.Add((file, hash, actualHash) =>
-                //{
-                //    Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
-                //});
+
+                staticCdnSource.VerificationFailed.Add((file, hash, actualHash) =>
+                {
+                    Console.WriteLine($"failed to verify {file} - expected {hash}, got {actualHash}");
+                });
 
                 downloader.Sources.Add(staticCdnSource);
             }
