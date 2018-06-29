@@ -117,6 +117,8 @@ namespace LibSpeedLoad.Core.Download.Sources
                     }
 
                     hashManager.Save();
+
+                    GC.Collect();
                 }
             });
         }
