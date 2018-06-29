@@ -96,7 +96,7 @@ namespace LibSpeedLoad.Core.Download.Sources.StaticCDN
                             fileInfo.OriginalFullPath);
                     }
 
-                    GC.Collect();
+                    //GC.Collect();
                 }
                 
                 reader.Dispose();
